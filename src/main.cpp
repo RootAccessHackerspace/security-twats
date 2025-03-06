@@ -14,7 +14,7 @@ ESP8266WebServer server(80);
 // --- Global Variables ---
 bool alarmActive = false;     // Flag to indicate if the full alarm is active
 unsigned long alarmStartTime = 0;  // Timestamp of when the full alarm started
-const unsigned long alarmDuration = 60000; // Alarm duration in milliseconds (60 seconds)
+unsigned long alarmDuration = 60000; // Alarm duration in milliseconds (60 seconds)
 bool motionDetected = false; // Flag to prevent multiple short alarms.
 bool systemArmed = false;    // Flag to indicate if the system is armed
 
@@ -132,6 +132,7 @@ void handleAlarmOn() {
         Serial.println("Invalid duration unit. Using default.");
         break;
     }
+    alarmDuration = duration;
     Serial.print("Duration set to: ");
     Serial.print(duration);
     Serial.println(" ms");
