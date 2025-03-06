@@ -14,7 +14,7 @@ ESP8266WebServer server(80);
 // --- Global Variables ---
 bool alarmActive = false;     // Flag to indicate if the full alarm is active
 unsigned long alarmStartTime = 0;  // Timestamp of when the full alarm started
-const unsigned long alarmDuration = 3000; // Alarm duration in milliseconds (2 seconds)
+const unsigned long alarmDuration = 60000; // Alarm duration in milliseconds (60 seconds)
 bool motionDetected = false; // Flag to prevent multiple short alarms.
 bool systemArmed = false;    // Flag to indicate if the system is armed
 
@@ -22,7 +22,7 @@ bool systemArmed = false;    // Flag to indicate if the system is armed
 void handleRoot();
 void handleAlarmOn();
 void handleNotFound();
-void playWarningTone();
+void playWarningTone(unsigned int dur = 800);
 void playAlarmSound();
 void stopAlarmSound();
 void connectToWiFi();
@@ -52,7 +52,7 @@ void loop() {
   server.handleClient();
 
   // --- Motion Detection ---
-  if (systemArmed) {
+  if (systemArmed && !alarmActive) {
     int pirValue = digitalRead(pirPin);
     if (pirValue == HIGH && !motionDetected) {
       Serial.println("Motion detected!");
@@ -114,9 +114,42 @@ void handleRoot() {
 }
 
 void handleAlarmOn() {
+  unsigned long duration = alarmDuration; // Default duration
+
+  if (server.hasArg("dur")) {
+    String durStr = server.arg("dur");
+    unsigned long durVal = durStr.substring(0, durStr.length() - 1).toInt();
+    char unit = durStr.charAt(durStr.length() - 1);
+
+    switch (unit) {
+      case 's':
+        duration = durVal * 1000;      // Convert seconds to milliseconds
+        break;
+      case 'm':
+        duration = durVal * 60 * 1000; // Convert minutes to milliseconds
+        break;
+      default:
+        Serial.println("Invalid duration unit. Using default.");
+        break;
+    }
+    Serial.print("Duration set to: ");
+    Serial.print(duration);
+    Serial.println(" ms");
+  } else if (alarmActive) {
+    Serial.println("Alarm was already active, resetting timer.");
+    alarmStartTime = millis();
+  } else {
+    Serial.println("No duration specified, using default. ");
+  }
+  
   alarmActive = true;
   alarmStartTime = millis();
+  Serial.print("Alarm Sounding for ");
+  Serial.print(duration);
+  Serial.println(" ms");
   server.send(200, "text/html", "<h1>Alarm Activated!</h1>");
+  
+
 }
 
 void handleNotFound() {
@@ -125,22 +158,24 @@ void handleNotFound() {
 
 // --- Alarm Sound Functions ---
 
-void playWarningTone() {
+void playWarningTone(unsigned int dur) {
   // Play a short warning tone sequence
   digitalWrite(piezoPin, HIGH);
-  delay(800);
+  delay(dur);
   digitalWrite(piezoPin, LOW);
 }
 
 
 void playAlarmSound() {
   //  loud, continuous alarm tone
-  Serial.println("Alarm Sounding!");
   digitalWrite(piezoPin, HIGH);
+  Serial.print(".");
+  delay(1000);
 }
 
 void stopAlarmSound() {
   digitalWrite(piezoPin, LOW);
+  Serial.println();
   Serial.println("Alarm Stopped!");
 }
 
