@@ -279,29 +279,33 @@ void handleAlarmOn() {
   Serial.print("Alarm Sounding for ");
   Serial.print(duration);
   Serial.println(" ms");
-  server.send(200, "text/html", "<h1>Alarm Activated!</h1>");
+  // Return JSON instead of HTML
+  String jsonResp = String("{\"status\":\"success\",\"message\":\"Alarm Activated!\",\"duration\":") + duration + "}";
+  server.send(200, "application/json", jsonResp);
 }
 
 void handleEnableLights() {
   lightsActivated = !lightsActivated;
+  // Return JSON response
   if (lightsActivated) {
-    server.send(200, "text/html", "<h1>Lights Activated!</h1>");
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Lights Activated!\",\"lightsActivated\":true}");
   } else {
-    server.send(200, "text/html", "<h1>Lights Deactivated!</h1>");
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Lights Deactivated!\",\"lightsActivated\":false}");
   }
 }
 
 void handleEnableSound() {
   soundActivated = !soundActivated;
+  // Return JSON response
   if (soundActivated) {
-    server.send(200, "text/html", "<h1>Sound Activated!</h1>");
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Sound Activated!\",\"soundActivated\":true}");
   } else {
-    server.send(200, "text/html", "<h1>Sound Deactivated!</h1>");
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Sound Deactivated!\",\"soundActivated\":false}");
   }
 }
 
 void handleNotFound() {
-  server.send(404, "text/plain", "404: Not Found");
+  server.send(404, "application/json", "{\"status\":\"error\",\"message\":\"404: Not Found\"}");
 }
 
 // --- Alarm Sound Functions ---
@@ -343,13 +347,13 @@ void deactivateLights() {
 void handleArm() {
   systemArmed = true;
   Serial.println("System Armed");
-  server.send(200, "text/html", "<h1>System Armed!</h1>");
+  server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"System Armed!\"}");
 }
 
 void handleDisarm() {
   systemArmed = false;
   Serial.println("System Disarmed");
-  server.send(200, "text/html", "<h1>System Disarmed!</h1>");
+  server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"System Disarmed!\"}");
 }
 
 // --- Extended Warning Function ---
@@ -390,8 +394,8 @@ void handleStopAlarm() {
     stopAlarmSound();
     notificationSent = false; // Reset notification flag
     Serial.println("Alarm manually stopped!");
-    server.send(200, "text/html", "<h1>Alarm Stopped!</h1>");
+    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Alarm Stopped!\"}");
   } else {
-    server.send(200, "text/html", "<h1>No Alarm is Active.</h1>");
+    server.send(200, "application/json", "{\"status\":\"info\",\"message\":\"No Alarm is Active.\"}");
   }
 }
