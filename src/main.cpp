@@ -53,6 +53,7 @@ void handleArm();
 void handleDisarm();
 void playExtendedWarning();
 void sendPushoverNotification(const char* message);
+void handleStopAlarm();
 
 void setup() {
   Serial.begin(9600);
@@ -67,6 +68,7 @@ void setup() {
   server.on("/alarmOn", handleAlarmOn);
   server.on("/arm", handleArm);
   server.on("/disarm", handleDisarm);
+  server.on("/stopalarm", handleStopAlarm);  // <--- New route for stopping alarm
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -204,6 +206,7 @@ void handleRoot() {
       
       html += R"(</p>
       <p><a href="/alarmOn">Activate Full Alarm</a></p>
+      <p><a href="/stopalarm">Stop Alarm</a></p>
       <p><a href="/)";
       html += systemArmed ? "disarm\">Disarm System</a></p>" : "arm\">Arm System</a></p>";
       html += R"(
@@ -320,5 +323,19 @@ void sendPushoverNotification(const char* message) {
     http.end();
   } else {
     Serial.println("WiFi not connected. Cannot send Pushover notification.");
+  }
+}
+
+void handleStopAlarm() {
+  // Check if an alarm or extended warning is currently active
+  if (alarmActive || extendedWarningActive) {
+    alarmActive = false;
+    extendedWarningActive = false;
+    stopAlarmSound();
+    notificationSent = false; // Reset notification flag
+    Serial.println("Alarm manually stopped!");
+    server.send(200, "text/html", "<h1>Alarm Stopped!</h1>");
+  } else {
+    server.send(200, "text/html", "<h1>No Alarm is Active.</h1>");
   }
 }
