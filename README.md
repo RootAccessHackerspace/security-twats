@@ -15,7 +15,8 @@ A motion-detection security alarm system built for ESP8266/ESP32 microcontroller
 
 - ESP8266 or ESP32 development board
 - PIR motion sensor
-- Piezo buzzer
+- Piezo buzzer (optional)
+- Lights (optional)
 - Breadboard and jumper wires
 - Micro USB cable for power and programming
 
@@ -23,6 +24,7 @@ A motion-detection security alarm system built for ESP8266/ESP32 microcontroller
 
 - PIR Sensor: Connect to pin D7
 - Piezo Buzzer: Connect to pin D2
+- Lights Relay: Connect to pin D1
 - Both sensors need to be connected to VCC (3.3V) and GND
 
 ## Software Setup
