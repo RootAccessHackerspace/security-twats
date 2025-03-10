@@ -1,12 +1,19 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266HTTPClient.h>
+
+#include "secrets.h" // Include your secrets.h file for secret variables
 
 // --- Configuration ---
-const char* ssid = "RootAccess";  // Replace with WiFi SSID
-const char* password = "HACKTHEPLANET"; // Replace with WiFi password
+const char* ssid = WIFI_SSID;  // Use WiFi SSID from secrets.h
+const char* password = WIFI_PASSWORD; // Use WiFi password from secrets.h
 
 const int pirPin = D7;       // PIR sensor connected to digital pin D1 (GPIO 5)
 const int piezoPin = D2;     // Piezo buzzer connected to digital pin D2 (GPIO 4)
+
+// --- Pushover Configuration ---
+const char* pushoverUserKey = PUSHOVER_USER_KEY; // Use Pushover User Key from secrets.h
+const char* pushoverApiToken = PUSHOVER_API_TOKEN; // Use Pushover API Token from secrets.h
 
 // --- Web Server ---
 ESP8266WebServer server(80);
@@ -16,7 +23,23 @@ bool alarmActive = false;     // Flag to indicate if the full alarm is active
 unsigned long alarmStartTime = 0;  // Timestamp of when the full alarm started
 unsigned long alarmDuration = 60000; // Alarm duration in milliseconds (60 seconds)
 bool motionDetected = false; // Flag to prevent multiple short alarms.
+unsigned long motionStartTime = 0; // Timestamp of when motion was detected
+unsigned long motionDuration = 10000; // Max duration for motion detection before alert
+unsigned long motionCounter = 0; // Counter for motion detection
 bool systemArmed = false;    // Flag to indicate if the system is armed
+bool notificationsEnabled = true;
+
+// --- Motion Detection Counter Variables ---
+int motionCountThreshold = 3;           // Number of motion events to trigger extended warning
+unsigned long motionCountWindow = 30000; // Time window for counting (30 seconds)
+unsigned long lastMotionTime = 0;        // Time of the last detected motion
+int motionCount = 0;                     // Counter for motion events in the window
+bool extendedWarningActive = false;      // Flag for extended warning mode
+unsigned long extendedWarningDuration = 60000; // Extended warning duration (60 seconds)
+unsigned long extendedWarningStartTime = 0;   // When extended warning started
+unsigned long continuousMotionThreshold = 10000; // Time threshold for continuous motion detection
+
+bool notificationSent = false; // Flag to indicate if the notification has been sent
 
 // --- Function Prototypes ---
 void handleRoot();
@@ -28,7 +51,8 @@ void stopAlarmSound();
 void connectToWiFi();
 void handleArm();
 void handleDisarm();
-
+void playExtendedWarning();
+void sendPushoverNotification(const char* message);
 
 void setup() {
   Serial.begin(9600);
@@ -50,27 +74,93 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  unsigned long currentTime = millis();
+
+  // --- Reset motion counter if window expires ---
+  if (motionCount > 0 && currentTime - lastMotionTime > motionCountWindow) {
+    Serial.println("Motion count window expired, resetting counter");
+    motionCount = 0;
+  }
+
+  // --- Extended Warning Logic ---
+  if (extendedWarningActive) {
+    if (currentTime - extendedWarningStartTime < extendedWarningDuration) {
+      playExtendedWarning();
+    } else {
+      digitalWrite(piezoPin, LOW);
+      extendedWarningActive = false;
+      Serial.println("Extended warning stopped");
+    }
+  }
 
   // --- Motion Detection ---
-  if (systemArmed && !alarmActive) {
+  if (systemArmed && !alarmActive && !extendedWarningActive) {
     int pirValue = digitalRead(pirPin);
-    if (pirValue == HIGH && !motionDetected) {
-      Serial.println("Motion detected!");
-      motionDetected = true;
-      playWarningTone();
+    
+    if (pirValue == HIGH) {
+      if (!motionDetected) {
+        // Initial motion detected
+        Serial.println("Motion detected!");
+        motionDetected = true;
+        lastMotionTime = currentTime;
+        motionStartTime = currentTime; // Record when continuous motion started
+        motionCount++;
+        
+        Serial.print("Motion count: ");
+        Serial.print(motionCount);
+        Serial.print(" of ");
+        Serial.println(motionCountThreshold);
+        
+        if (motionCount >= motionCountThreshold) {
+          // Trigger extended warning due to count threshold
+          if (!notificationSent && notificationsEnabled) {
+            sendPushoverNotification("Multiple motion events! Extended warning activated!");
+          }
+          extendedWarningActive = true;
+          extendedWarningStartTime = currentTime;
+          Serial.println("Multiple motions detected! Extended warning activated!");
+          motionCount = 0; // Reset after triggering
+        } else {
+          // Play regular short warning tone
+          playWarningTone();
+        }
+      } else {
+        // Continuous motion detection logic
+        unsigned long motionDuration = currentTime - motionStartTime;
+        if (motionDuration >= continuousMotionThreshold) {
+          // Trigger extended warning due to continuous motion
+          if (!extendedWarningActive) {
+            if (!notificationSent && notificationsEnabled) {
+              sendPushoverNotification("Continuous motion detected! Extended warning activated!");
+              notificationSent = true; // Set flag to true after sending notification
+            }
+            extendedWarningActive = true;
+            extendedWarningStartTime = currentTime;
+            Serial.println("Continuous motion detected for 10+ seconds! Extended warning activated!");
+            motionCount = 0; // Reset motion count
+          }
+        }
+      }
     } else if (pirValue == LOW && motionDetected) {
+      // Motion stopped
       Serial.println("Ready...");
+      notificationSent = false; // Reset notification flag
       motionDetected = false; // Reset flag when motion stops
     }
   }
 
   // --- Full Alarm Logic ---
   if (alarmActive) {
-    if (millis() - alarmStartTime < alarmDuration) {
+    if (currentTime - alarmStartTime < alarmDuration) {
       playAlarmSound();
+      if (!notificationSent && notificationsEnabled) {
+        sendPushoverNotification("Alarm is sounding!");
+        notificationSent = true; // Set flag to true after sending notification
+      }
     } else {
       stopAlarmSound();
       alarmActive = false; // Deactivate the alarm after the duration
+      notificationSent = false; // Reset notification flag
     }
   }
 }
@@ -102,6 +192,16 @@ void handleRoot() {
       <h1>Trespass Warning and Access Threat System</h1>
       <p>System Status: )";
       html += systemArmed ? "Armed" : "Disarmed";
+      html += R"(<p>Motion Counter: )";
+      html += String(motionCount) + " of " + String(motionCountThreshold);
+      
+      // Add continuous motion status
+      if (motionDetected) {
+        unsigned long continuousDuration = (millis() - motionStartTime);
+        html += R"(</p><p>Continuous Motion: )";
+        html += String(continuousDuration / 1000) + " seconds";
+      }
+      
       html += R"(</p>
       <p><a href="/alarmOn">Activate Full Alarm</a></p>
       <p><a href="/)";
@@ -191,4 +291,34 @@ void handleDisarm() {
   systemArmed = false;
   Serial.println("System Disarmed");
   server.send(200, "text/html", "<h1>System Disarmed!</h1>");
+}
+
+// --- Extended Warning Function ---
+void playExtendedWarning() {
+  digitalWrite(piezoPin, HIGH);
+}
+
+void sendPushoverNotification(const char* message) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip SSL certificate verification
+    http.begin(client, "https://api.pushover.net/1/messages.json");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    String postData = "token=" + String(pushoverApiToken) + "&user=" + String(pushoverUserKey) + "&message=" + String(message);
+
+    int httpResponseCode = http.POST(postData);
+
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Pushover Response: " + response);
+    } else {
+      Serial.println("Error sending Pushover notification");
+    }
+
+    http.end();
+  } else {
+    Serial.println("WiFi not connected. Cannot send Pushover notification.");
+  }
 }

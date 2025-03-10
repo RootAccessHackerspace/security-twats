@@ -5,4 +5,4 @@
 .vscode/launch.json
 .vscode/ipch
 notes.md
-*.md
+secrets.h
