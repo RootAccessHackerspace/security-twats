@@ -6,6 +6,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #include "secrets.h" // Include your secrets.h file for secret variables
+#include "settings.h"  // Added settings include
 
 // --- Configuration ---
 const int baudRate = 115200; // Serial baud rate
@@ -24,7 +25,7 @@ const char* pushoverUserKey = PUSHOVER_USER_KEY; // Use Pushover User Key from s
 const char* pushoverApiToken = PUSHOVER_API_TOKEN; // Use Pushover API Token from secrets.h
 
 // --- Constants ---
-const bool notificationsEnabled = true;
+constexpr bool notificationsEnabled = Settings::pushNotificationsEnabled;
 const int motionCountThreshold = 3;           // Number of motion events to trigger extended warning
 const unsigned long motionCountWindow = 30000; // Time window for counting (30 seconds)
 const unsigned long continuousMotionThreshold = 10000; // Time threshold for continuous motion detection
@@ -39,8 +40,8 @@ unsigned long motionStartTime = 0; // Timestamp of when motion was detected
 bool systemArmed = false;    // Flag to indicate if the system is armed
 bool alarmActive = false;     // Flag to indicate if the full alarm is active
 bool motionDetected = false; // Flag to prevent multiple short alarms.
-bool soundActivated = true; // Flag to indicate if sound is activated
-bool lightsActivated = true; // Flag to indicate if lights are activated
+bool soundActivated = Settings::soundEnabled; // Flag to indicate if sound is activated
+bool lightsActivated = Settings::lightsEnabled; // Flag to indicate if lights are activated
 
 // --- Motion Detection Counter Variables ---
 int motionCount = 0;                     // Counter for motion events in the window
@@ -403,33 +404,33 @@ void handleStopAlarm() {
   }
 }
   void getStatus() {
-    StaticJsonDocument<512> doc;
-    
+    JsonDocument doc;
+
     // System State
-    JsonObject system = doc.createNestedObject("system");
+    JsonObject system = doc["system"].to<JsonObject>();
     system["armed"] = systemArmed;
     system["alarm_active"] = alarmActive;
     
     // Motion Information
-    JsonObject motion = doc.createNestedObject("motion");
+    JsonObject motion = doc["motion"].to<JsonObject>();
     motion["count"] = motionCount;
     motion["detected"] = motionDetected;
     motion["continuous"] = motionDetected && (millis() - motionStartTime >= continuousMotionThreshold);
     motion["duration"] = (motionDetected) ? (millis() - motionStartTime) / 1000 : 0;
     
     // Alarm Settings
-    JsonObject settings = doc.createNestedObject("settings");
+    JsonObject settings = doc["settings"].to<JsonObject>();
     settings["lights"] = lightsActivated;
     settings["sound"] = soundActivated;
     
     // Warning Status
-    JsonObject warning = doc.createNestedObject("warning");
+    JsonObject warning = doc["warning"].to<JsonObject>();
     warning["active"] = extendedWarningActive;
     warning["duration"] = extendedWarningActive ? (millis() - extendedWarningStartTime) / 1000 : 0;
     warning["notification_sent"] = notificationSent;
     
     // Alarm Timing
-    JsonObject timing = doc.createNestedObject("timing");
+    JsonObject timing = doc["timing"].to<JsonObject>();
     timing["duration"] = alarmActive ? (millis() - alarmStartTime) / 1000 : 0;
     timing["start_time"] = alarmStartTime;
 
