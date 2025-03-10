@@ -1,6 +1,8 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPClient.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <HTTPClient.h>
+
+
 
 #include "secrets.h" // Include your secrets.h file for secret variables
 
@@ -10,9 +12,9 @@ const int port = 80; // Web server port
 const char* ssid = WIFI_SSID;  // Use WiFi SSID from secrets.h
 const char* password = WIFI_PASSWORD; // Use WiFi password from secrets.h
 
-const int pirPin = D7;       // PIR sensor connected to digital pin D1 (GPIO 5)
-const int piezoPin = D2;     // Piezo buzzer connected to digital pin D2 (GPIO 4)
-const int lightRelayPin = D1; // Relay for lights connected to digital pin D1 (GPIO 5) -- Change this as needed (JA)
+const int pirPin = 10;       // PIR sensor connected to GPIO 10
+const int piezoPin = 8;      // Piezo buzzer connected to GPIO 8
+const int lightRelayPin = 7;  // Relay for lights connected to GPIO 7
 
 // --- Pushover Configuration ---
 const char* pushoverUserKey = PUSHOVER_USER_KEY; // Use Pushover User Key from secrets.h
@@ -46,9 +48,7 @@ unsigned long extendedWarningStartTime = 0;   // When extended warning started
 bool notificationSent = false; // Flag to indicate if the notification has been sent
 
 // --- Web Server ---
-ESP8266WebServer server(port);
-
-// --- Function Prototypes ---
+WebServer server(port);
 void handleRoot();
 void handleAlarmOn();
 void handleEnableLights();
@@ -63,6 +63,8 @@ void handleDisarm();
 void playExtendedWarning();
 void sendPushoverNotification(const char* message);
 void handleStopAlarm();
+void activateLights();
+void deactivateLights();
 
 void setup() {
   Serial.begin(baudRate);
@@ -81,7 +83,7 @@ void setup() {
   server.on("/enableSound", handleEnableSound);
   server.on("/arm", handleArm);
   server.on("/disarm", handleDisarm);
-  server.on("/stopalarm", handleStopAlarm);  // <--- New route for stopping alarm
+  server.on("/stopalarm", handleStopAlarm);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
