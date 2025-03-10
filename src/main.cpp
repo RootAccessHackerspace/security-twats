@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 #include <Adafruit_NeoPixel.h>
 
@@ -53,22 +54,23 @@ bool notificationSent = false; // Flag to indicate if the notification has been 
 WebServer server(port);
 
 // --- Function Prototypes ---
-void handleRoot();
+void activateLights();
+void connectToWiFi();
+void deactivateLights();
 void handleAlarmOn();
+void handleArm();
+void handleDisarm();
 void handleEnableLights();
 void handleEnableSound();
 void handleNotFound();
-void playWarningTone(unsigned int dur = 800);
-void playAlarmSound();
-void stopAlarmSound();
-void connectToWiFi();
-void handleArm();
-void handleDisarm();
-void playExtendedWarning();
-void sendPushoverNotification(const char* message);
+void handleRoot();
 void handleStopAlarm();
-void activateLights();
-void deactivateLights();
+void playAlarmSound();
+void playExtendedWarning();
+void playWarningTone(unsigned int dur = 800);
+void sendPushoverNotification(const char* message);
+void stopAlarmSound();
+void getStatus();
 
 void setup() {
   Serial.begin(baudRate);
@@ -94,6 +96,7 @@ void setup() {
   server.on("/arm", handleArm);
   server.on("/disarm", handleDisarm);
   server.on("/stopalarm", handleStopAlarm);
+  server.on("/status", getStatus);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
@@ -399,3 +402,39 @@ void handleStopAlarm() {
     server.send(200, "application/json", "{\"status\":\"info\",\"message\":\"No Alarm is Active.\"}");
   }
 }
+  void getStatus() {
+    StaticJsonDocument<512> doc;
+    
+    // System State
+    JsonObject system = doc.createNestedObject("system");
+    system["armed"] = systemArmed;
+    system["alarm_active"] = alarmActive;
+    
+    // Motion Information
+    JsonObject motion = doc.createNestedObject("motion");
+    motion["count"] = motionCount;
+    motion["detected"] = motionDetected;
+    motion["continuous"] = motionDetected && (millis() - motionStartTime >= continuousMotionThreshold);
+    motion["duration"] = (motionDetected) ? (millis() - motionStartTime) / 1000 : 0;
+    
+    // Alarm Settings
+    JsonObject settings = doc.createNestedObject("settings");
+    settings["lights"] = lightsActivated;
+    settings["sound"] = soundActivated;
+    
+    // Warning Status
+    JsonObject warning = doc.createNestedObject("warning");
+    warning["active"] = extendedWarningActive;
+    warning["duration"] = extendedWarningActive ? (millis() - extendedWarningStartTime) / 1000 : 0;
+    warning["notification_sent"] = notificationSent;
+    
+    // Alarm Timing
+    JsonObject timing = doc.createNestedObject("timing");
+    timing["duration"] = alarmActive ? (millis() - alarmStartTime) / 1000 : 0;
+    timing["start_time"] = alarmStartTime;
+
+    String jsonResponse;
+    serializeJson(doc, jsonResponse);
+    server.send(200, "application/json", jsonResponse);
+    Serial.println("Status requested");
+  }
