@@ -40,8 +40,8 @@ bool lightsActivated = true; // Flag to indicate if lights are activated
 // --- Motion Detection Counter Variables ---
 int motionCount = 0;                     // Counter for motion events in the window
 unsigned long lastMotionTime = 0;        // Time of the last detected motion
-unsigned long extendedWarningStartTime = 0;   // When extended warning started
 bool extendedWarningActive = false;      // Flag for extended warning mode
+unsigned long extendedWarningStartTime = 0;   // When extended warning started
 
 bool notificationSent = false; // Flag to indicate if the notification has been sent
 
