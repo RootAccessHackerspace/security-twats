@@ -60,6 +60,7 @@ Create a new file named `secrets.h` in the `src` folder with the following conte
 #define WIFI_PASSWORD "YourWiFiPassword"
 #define PUSHOVER_USER_KEY "YourPushoverUserKey"
 #define PUSHOVER_API_TOKEN "YourPushoverAPIToken"
+#define DEVICE_NAME "DeviceName" // Optional: Name of your device for notifications
 
 #endif
 ```
@@ -69,6 +70,7 @@ Replace the placeholder values with your actual credentials:
 - `YourWiFiPassword`: Your WiFi password
 - `YourPushoverUserKey`: Your Pushover user key (obtained from Pushover account)
 - `YourPushoverAPIToken`: Your Pushover API token (create an application at Pushover)
+- `DeviceName`: Optional name for your device (used in notifications and web interface)
 
 ### Pushover Setup
 

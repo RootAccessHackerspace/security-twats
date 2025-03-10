@@ -2,12 +2,12 @@
 #include <WebServer.h>
 #include <HTTPClient.h>
 
-
+#include <Adafruit_NeoPixel.h>
 
 #include "secrets.h" // Include your secrets.h file for secret variables
 
 // --- Configuration ---
-const int baudRate = 9600; // Serial baud rate
+const int baudRate = 115200; // Serial baud rate
 const int port = 80; // Web server port
 const char* ssid = WIFI_SSID;  // Use WiFi SSID from secrets.h
 const char* password = WIFI_PASSWORD; // Use WiFi password from secrets.h
@@ -16,7 +16,7 @@ const int pirPin = 10;       // PIR sensor connected to GPIO 10
 const int piezoPin = 8;      // Piezo buzzer connected to GPIO 8
 const int lightRelayPin = 6;  // Relay for lights connected to GPIO 7
 
-const int ledPin = 7; // LED pin for status indication
+Adafruit_NeoPixel pixels(1, 7, NEO_GRB + NEO_KHZ800); // LED pin for status indication
 
 // --- Pushover Configuration ---
 const char* pushoverUserKey = PUSHOVER_USER_KEY; // Use Pushover User Key from secrets.h
@@ -51,6 +51,8 @@ bool notificationSent = false; // Flag to indicate if the notification has been 
 
 // --- Web Server ---
 WebServer server(port);
+
+// --- Function Prototypes ---
 void handleRoot();
 void handleAlarmOn();
 void handleEnableLights();
@@ -70,15 +72,16 @@ void deactivateLights();
 
 void setup() {
   Serial.begin(baudRate);
+
+  pixels.begin(); // Initialize the LED
+  pixels.setPixelColor(0, pixels.Color(0, 75, 0));  // Green
+  pixels.show();
+
   pinMode(pirPin, INPUT);
   pinMode(piezoPin, OUTPUT);
   pinMode(lightRelayPin, OUTPUT);
   digitalWrite(piezoPin, LOW); // Ensure piezo is off initially
   digitalWrite(lightRelayPin, LOW); // Ensure lights are off initially
-
-  while (!Serial) {
-    ; // Wait for serial port to connect. Needed for native USB port only
-  }
   Serial.println("Serial Monitor Initialized"); // Add a test message
 
   connectToWiFi();
@@ -94,6 +97,7 @@ void setup() {
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
+
 }
 
 void loop() {
@@ -138,11 +142,11 @@ void loop() {
         if (motionCount >= motionCountThreshold) {
           // Trigger extended warning due to count threshold
           if (!notificationSent && notificationsEnabled) {
-            sendPushoverNotification("Multiple motion events! Extended warning activated!");
+            sendPushoverNotification((String(DEVICE_NAME) + " Multiple motion events! Extended warning activated!").c_str());
           }
           extendedWarningActive = true;
           extendedWarningStartTime = currentTime;
-          Serial.println("Multiple motions detected! Extended warning activated!");
+          Serial.println((String(DEVICE_NAME) + " Multiple motions detected! Extended warning activated!").c_str());
           motionCount = 0; // Reset after triggering
         } else {
           // Play regular short warning tone
@@ -155,7 +159,7 @@ void loop() {
           // Trigger extended warning due to continuous motion
           if (!extendedWarningActive) {
             if (!notificationSent && notificationsEnabled) {
-              sendPushoverNotification("Continuous motion detected! Extended warning activated!");
+              sendPushoverNotification((String(DEVICE_NAME) + " Continuous motion detected! Extended warning activated!").c_str());
               notificationSent = true; // Set flag to true after sending notification
             }
             extendedWarningActive = true;
