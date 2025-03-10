@@ -22,9 +22,9 @@ A motion-detection security alarm system built for ESP8266/ESP32 microcontroller
 
 ## Wiring
 
-- PIR Sensor: Connect to pin D7
-- Piezo Buzzer: Connect to pin D2
-- Lights Relay: Connect to pin D1
+- PIR Sensor: Connect to pin 10
+- Piezo Buzzer: Connect to pin 8
+- Lights Relay: Connect to pin 6
 - Both sensors need to be connected to VCC (3.3V) and GND
 
 ## Software Setup
@@ -41,8 +41,7 @@ A motion-detection security alarm system built for ESP8266/ESP32 microcontroller
 ### Installation
 
 1. Clone or download this repository
-2. Create a `secrets.h` file in the `src` folder (see below)
-3. Open the `Alarm.ino` file in Arduino IDE
+3. Open `Alarm/src/main.cpp` in your preferred IDE (Platform IO recommended)
 4. Select the correct board and port
 5. Upload the sketch to your ESP8266/ESP32
 
