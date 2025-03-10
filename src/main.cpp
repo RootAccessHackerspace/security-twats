@@ -219,7 +219,7 @@ void handleRoot() {
       <title>Trespass Warning and Access Threat System</title>
     </head>
     <body>
-      <h1>Trespass Warning and Access Threat System</h1>
+      <h3>Trespass Warning and </br>Access Threat System</h3>
       <p>System Status: )";
       html += systemArmed ? "Armed" : "Disarmed";
       html += R"(<p>Motion Counter: )";
