@@ -5,7 +5,7 @@
 #include "secrets.h" // Include your secrets.h file for secret variables
 
 // --- Configuration ---
-const baudRate = 9600; // Serial baud rate
+const int baudRate = 9600; // Serial baud rate
 const int port = 80; // Web server port
 const char* ssid = WIFI_SSID;  // Use WiFi SSID from secrets.h
 const char* password = WIFI_PASSWORD; // Use WiFi password from secrets.h
