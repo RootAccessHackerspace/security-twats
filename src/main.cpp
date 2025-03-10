@@ -42,6 +42,7 @@ bool alarmActive = false;     // Flag to indicate if the full alarm is active
 bool motionDetected = false; // Flag to prevent multiple short alarms.
 bool soundActivated = Settings::soundEnabled; // Flag to indicate if sound is activated
 bool lightsActivated = Settings::lightsEnabled; // Flag to indicate if lights are activated
+bool lightsCurrentlyOn = false; // Flag to track if lights are currently on
 
 // --- Motion Detection Counter Variables ---
 int motionCount = 0;                     // Counter for motion events in the window
@@ -55,9 +56,7 @@ bool notificationSent = false; // Flag to indicate if the notification has been 
 WebServer server(port);
 
 // --- Function Prototypes ---
-void activateLights();
 void connectToWiFi();
-void deactivateLights();
 void handleAlarmOn();
 void handleArm();
 void handleDisarm();
@@ -72,6 +71,8 @@ void playWarningTone(unsigned int dur = 800);
 void sendPushoverNotification(const char* message);
 void stopAlarmSound();
 void getStatus();
+void setLights(bool on); // Simplified function to control lights
+void toggleLightsEnabled(); // Function to toggle whether lights are enabled
 
 void setup() {
   Serial.begin(baudRate);
@@ -185,13 +186,21 @@ void loop() {
   if (alarmActive) {
     if (currentTime - alarmStartTime < alarmDuration) {
       if(soundActivated) playAlarmSound();
-      if(lightsActivated) activateLights();
+      
+      // Only turn on lights once at the beginning of the alarm
+      if(lightsActivated && !lightsCurrentlyOn) {
+        setLights(true);
+        Serial.println("Lights Activated for Alarm!");
+      }
+      
       if (!notificationSent && notificationsEnabled) {
         sendPushoverNotification("Alarm is sounding!");
         notificationSent = true; // Set flag to true after sending notification
       }
     } else {
-      deactivateLights();
+      if(lightsCurrentlyOn) {
+        setLights(false);
+      }
       stopAlarmSound();
       alarmActive = false; // Deactivate the alarm after the duration
       notificationSent = false; // Reset notification flag
@@ -289,13 +298,14 @@ void handleAlarmOn() {
 }
 
 void handleEnableLights() {
-  lightsActivated = !lightsActivated;
+  toggleLightsEnabled();
+  
   // Return JSON response
-  if (lightsActivated) {
-    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Lights Activated!\",\"lightsActivated\":true}");
-  } else {
-    server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Lights Deactivated!\",\"lightsActivated\":false}");
-  }
+  String jsonResp = String("{\"status\":\"success\",\"message\":\"Lights ") + 
+                   (lightsActivated ? "Activated!" : "Deactivated!") + 
+                   "\",\"lightsActivated\":" + 
+                   (lightsActivated ? "true" : "false") + "}";
+  server.send(200, "application/json", jsonResp);
 }
 
 void handleEnableSound() {
@@ -335,16 +345,20 @@ void stopAlarmSound() {
   Serial.println("Alarm Stopped!");
 }
 
-void activateLights() {
-  digitalWrite(lightRelayPin, HIGH);
-  Serial.println();
-  Serial.println("Lights Activated!");
+void setLights(bool on) {
+  digitalWrite(lightRelayPin, on ? HIGH : LOW);
+  lightsCurrentlyOn = on;
+  Serial.println(on ? "Lights turned ON" : "Lights turned OFF");
 }
 
-void deactivateLights() {
-  digitalWrite(lightRelayPin, LOW);
-  Serial.println();
-  Serial.println("Lights Deactivated!");
+void toggleLightsEnabled() {
+  lightsActivated = !lightsActivated;
+  Serial.println(lightsActivated ? "Lights feature enabled" : "Lights feature disabled");
+  
+  // If lights are disabled, make sure they're turned off
+  if (!lightsActivated && lightsCurrentlyOn) {
+    setLights(false);
+  }
 }
 
 // --- Arm/Disarm Handlers ---
@@ -396,6 +410,9 @@ void handleStopAlarm() {
     alarmActive = false;
     extendedWarningActive = false;
     stopAlarmSound();
+    if (lightsCurrentlyOn) {
+      setLights(false);
+    }
     notificationSent = false; // Reset notification flag
     Serial.println("Alarm manually stopped!");
     server.send(200, "application/json", "{\"status\":\"success\",\"message\":\"Alarm Stopped!\"}");
