@@ -14,7 +14,9 @@ const char* password = WIFI_PASSWORD; // Use WiFi password from secrets.h
 
 const int pirPin = 10;       // PIR sensor connected to GPIO 10
 const int piezoPin = 8;      // Piezo buzzer connected to GPIO 8
-const int lightRelayPin = 7;  // Relay for lights connected to GPIO 7
+const int lightRelayPin = 6;  // Relay for lights connected to GPIO 7
+
+const int ledPin = 7; // LED pin for status indication
 
 // --- Pushover Configuration ---
 const char* pushoverUserKey = PUSHOVER_USER_KEY; // Use Pushover User Key from secrets.h
@@ -73,6 +75,11 @@ void setup() {
   pinMode(lightRelayPin, OUTPUT);
   digitalWrite(piezoPin, LOW); // Ensure piezo is off initially
   digitalWrite(lightRelayPin, LOW); // Ensure lights are off initially
+
+  while (!Serial) {
+    ; // Wait for serial port to connect. Needed for native USB port only
+  }
+  Serial.println("Serial Monitor Initialized"); // Add a test message
 
   connectToWiFi();
 
