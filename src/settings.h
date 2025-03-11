@@ -1,6 +1,3 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
-
 namespace Settings {
     // Set to true to enable lights, false to disable.
     constexpr bool lightsEnabled = true;
@@ -12,4 +9,4 @@ namespace Settings {
     constexpr bool pushNotificationsEnabled = true;
 }
 
-#endif // SETTINGS_H
+
