@@ -88,9 +88,8 @@ void setup() {
     pinMode(alarmPin, OUTPUT);
     digitalWrite(alarmPin, LOW);  // Ensure alarm is off
 
-    pixels.begin();
-    pixels.setPixelColor(0, pixels.Color(255, 165, 0)); // Orange for offline
-    pixels.show();
+    // Initialize LED
+    setupLed();
 
     Pushover::initialize(pushoverUserKey, pushoverApiToken);
     connectToWiFi();

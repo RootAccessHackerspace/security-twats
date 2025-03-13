@@ -17,6 +17,12 @@ unsigned long lastLedUpdateTime = 0;
 unsigned long ledUpdateInterval = 500;
 int ledAnimationStep = 0;
 
+void setupLed() {
+    pixels.begin();
+    pixels.setBrightness(50); // Set brightness to 50%
+    pixels.show(); // Initialize all pixels to 'off'
+}
+
 void ledStatus(const char* status) {
     if (strcmp(status, "ready") == 0) {
         currentLedState = wifiConnected ? LED_CONNECTED_DISARMED : LED_OFFLINE;

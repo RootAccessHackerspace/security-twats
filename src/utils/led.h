@@ -22,5 +22,6 @@ extern int ledAnimationStep;
 void ledStatus(const char* status);
 void flashRedBlueLed();
 void updateLedStatus();
+void setupLed();
 
 #endif
