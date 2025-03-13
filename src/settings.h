@@ -1,12 +1,6 @@
 namespace Settings {
-    // Set to true to enable lights, false to disable.
-    constexpr bool lightsEnabled = true;
-
-    // Set to true to enable sound, false to disable.
-    constexpr bool soundEnabled = true;
-
-    // Set to true to enable push notifications, false to disable.
-    constexpr bool pushNotificationsEnabled = true;
+    // Declare the variables as extern.  No initializer here.
+    extern const bool lightsEnabled;
+    extern const bool soundEnabled;
+    extern const bool pushNotificationsEnabled;
 }
-
-
